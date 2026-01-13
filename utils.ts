@@ -2,7 +2,47 @@
 import { Database, Student, LogEntry, AppConfig } from './types';
 import * as XLSX from 'xlsx';
 
+// Helper to compress images before saving to LocalStorage
+// This prevents the "QuotaExceededError" and keeps the app fast.
+export const compressImage = (file: File, maxWidth = 300, quality = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const elem = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions
+        if (width > maxWidth) {
+          height = height * (maxWidth / width);
+          width = maxWidth;
+        }
+
+        elem.width = width;
+        elem.height = height;
+        const ctx = elem.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Output as JPEG with reduced quality
+        resolve(elem.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export const fileToBase64 = (file: File): Promise<string> => {
+  // We now route through the compressor by default for safer storage
+  if (file.type.startsWith('image/')) {
+      return compressImage(file);
+  }
+  
+  // Fallback for non-image files (though not used currently)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);

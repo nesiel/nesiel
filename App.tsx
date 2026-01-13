@@ -197,6 +197,7 @@ function App() {
   const handleStoreItemImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, itemId: string) => {
     if (e.target.files?.[0]) {
       try {
+        // fileToBase64 now automatically compresses images
         const base64 = await fileToBase64(e.target.files[0]);
         handleUpdateStoreItem(itemId, 'image', base64);
       } catch (err) {
@@ -233,6 +234,8 @@ function App() {
              for (const part of parts) {
                 if (part.inlineData) {
                     const base64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                    // We can accept the AI image as is, or compress it if we want to be safe, 
+                    // but usually AI icons are manageable. Manual upload is the big risk.
                     handleUpdateStoreItem(item.id, 'image', base64);
                     break;
                 }
