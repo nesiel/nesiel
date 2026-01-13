@@ -48,6 +48,7 @@ export const parseExcel = async (file: File, config: AppConfig): Promise<Databas
           
           // Student Contact
           studentCell: ['סלולרי של התלמיד', 'נייד תלמיד', 'טלפון תלמיד', 'פלאפון תלמיד', 'נייד של התלמיד'],
+          studentEmail: ['מייל תלמיד', 'דוא"ל תלמיד', 'אימייל תלמיד', 'Student Email'],
           homePhone: ['טלפון בבית', 'טלפון בית', 'בבית', 'Home Phone', 'טלפון נייח'],
 
           // Mother
@@ -89,6 +90,7 @@ export const parseExcel = async (file: File, config: AppConfig): Promise<Databas
 
           // === Contact Info ===
           const sCell = getValue(headersMap.studentCell);
+          const sEmail = getValue(headersMap.studentEmail);
           const hPhone = getValue(headersMap.homePhone);
 
           const mName = getValue(headersMap.motherName);
@@ -100,6 +102,7 @@ export const parseExcel = async (file: File, config: AppConfig): Promise<Databas
           const fEmail = getValue(headersMap.fatherEmail);
 
           if (sCell) db[name].studentCell = String(sCell).replace(/[^0-9+]/g, '');
+          if (sEmail) db[name].studentEmail = String(sEmail).trim();
           if (hPhone) db[name].homePhone = String(hPhone).replace(/[^0-9+]/g, '');
 
           if (mName) db[name].nameMother = String(mName).trim();

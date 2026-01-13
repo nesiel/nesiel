@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Student, AppConfig } from '../types';
-import { X, Trash2, Calendar, MessageCircle, Phone, Heart, Users, GraduationCap, PlusCircle, Check, MinusCircle, Mail, Smartphone, Home } from 'lucide-react';
+import { X, Trash2, Calendar, MessageCircle, Phone, Heart, Users, GraduationCap, PlusCircle, Check, MinusCircle, Mail, Smartphone, Home, Trophy, Filter } from 'lucide-react';
 
 interface StudentDetailsProps {
   student: Student | null;
@@ -12,9 +11,10 @@ interface StudentDetailsProps {
   onMarkNachat: (studentName: string) => void;
   onUpdateStudent: (student: Student) => void;
   isAuthenticated: boolean;
+  filterKeyword?: string;
 }
 
-export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config, onClose, onDeleteLog, onAddLog, onMarkNachat, isAuthenticated }) => {
+export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config, onClose, onDeleteLog, onAddLog, onMarkNachat, onUpdateStudent, isAuthenticated, filterKeyword }) => {
   const [showAddAction, setShowAddAction] = useState(false);
   const [isManualInput, setIsManualInput] = useState(false);
   
@@ -24,6 +24,17 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
   const [customScore, setCustomScore] = useState<string>("0");
 
   if (!student) return null;
+
+  // Filter logs if keyword is provided
+  const logsWithIndex = student.logs.map((log, index) => ({ ...log, originalIndex: index }));
+  
+  const displayedLogs = filterKeyword 
+    ? logsWithIndex.filter(l => l.sub && l.sub.includes(filterKeyword))
+    : logsWithIndex;
+
+  const displayTotal = filterKeyword
+    ? displayedLogs.reduce((acc, l) => acc + l.s, 0)
+    : student.total;
 
   const handleWhatsApp = (phone: string, parentName: string) => {
     if (!phone) return;
@@ -66,13 +77,21 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#2d1b15] w-full max-w-lg max-h-[90vh] rounded-[2.5rem] border-2 border-[#d4af37]/40 shadow-2xl flex flex-col overflow-hidden relative">
+      <div className="bg-card w-full max-w-lg max-h-[90vh] rounded-[2.5rem] border-2 border-accent/40 shadow-2xl flex flex-col overflow-hidden relative">
         
         <div className="p-6 pb-2 flex justify-between items-start">
           <div>
-            <h2 className="text-3xl font-bold text-[#d4af37]">{student.name}</h2>
+            <h2 className="text-3xl font-bold text-accent">{student.name}</h2>
             <div className="flex flex-col gap-1 mt-1">
-                <p className="text-[#d4af37]/50 text-xs italic">מאזן אישי בבנק הכיתתי</p>
+                <p className="text-accent/50 text-xs italic flex items-center gap-1">
+                   {filterKeyword ? (
+                       <span className="bg-accent/20 text-accent px-2 py-0.5 rounded-full flex items-center gap-1">
+                           <Filter size={10} /> נתוני תפילה בלבד
+                       </span>
+                   ) : (
+                       "מאזן אישי בבנק הכיתתי"
+                   )}
+                </p>
                 <div className="flex flex-wrap gap-2">
                     {student.studentCell && (
                         <span className="flex items-center gap-1 text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-gray-400">
@@ -87,20 +106,33 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
                 </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-[#d4af37]">
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 text-accent">
             <X size={24} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           
-          {/* Quick Actions / Manual Add */}
-          {isAuthenticated && (
-            <div className="bg-[#d4af37]/5 p-4 rounded-3xl border border-[#d4af37]/20">
+          {/* Restore to Podium Button */}
+          {student.isHiddenFromPodium && !filterKeyword && (
+            <button 
+                onClick={() => {
+                    onUpdateStudent({...student, isHiddenFromPodium: false});
+                    onClose();
+                }}
+                className="w-full py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition"
+            >
+                <Trophy size={18} /> החזר לפודיום (בטל הסתרה)
+            </button>
+          )}
+
+          {/* Quick Actions / Manual Add - Only show if not filtered */}
+          {isAuthenticated && !filterKeyword && (
+            <div className="bg-accent/5 p-4 rounded-3xl border border-accent/20">
                {!showAddAction ? (
                  <button 
                     onClick={() => setShowAddAction(true)}
-                    className="w-full py-3 bg-[#d4af37] text-black font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 hover:bg-[#c4a030] transition active:scale-95"
+                    className="w-full py-3 bg-accent text-accent-fg font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition active:scale-95"
                  >
                     <PlusCircle size={18} /> הוסף פעולה ידנית
                  </button>
@@ -109,13 +141,13 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
                     <div className="flex gap-2">
                        <button 
                           onClick={() => setIsManualInput(false)}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg border transition ${!isManualInput ? 'bg-[#d4af37] text-black border-[#d4af37]' : 'bg-transparent text-gray-400 border-white/10'}`}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg border transition ${!isManualInput ? 'bg-accent text-accent-fg border-accent' : 'bg-transparent text-gray-400 border-white/10'}`}
                        >
                           רשימה קיימת
                        </button>
                        <button 
                           onClick={() => setIsManualInput(true)}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg border transition ${isManualInput ? 'bg-[#d4af37] text-black border-[#d4af37]' : 'bg-transparent text-gray-400 border-white/10'}`}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg border transition ${isManualInput ? 'bg-accent text-accent-fg border-accent' : 'bg-transparent text-gray-400 border-white/10'}`}
                        >
                           הקלדה חופשית
                        </button>
@@ -123,7 +155,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
 
                     {!isManualInput ? (
                         <select 
-                          className="w-full bg-black/40 border border-[#d4af37]/30 text-white p-3 rounded-xl outline-none text-sm"
+                          className="w-full bg-black/10 border border-accent/30 text-txt p-3 rounded-xl outline-none text-sm"
                           value={selectedAction}
                           onChange={(e) => setSelectedAction(e.target.value)}
                         >
@@ -137,14 +169,14 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
                            <input 
                               type="text" 
                               placeholder="תיאור הפעולה..." 
-                              className="flex-[2] bg-black/40 border border-[#d4af37]/30 text-white p-3 rounded-xl outline-none text-sm"
+                              className="flex-[2] bg-black/10 border border-accent/30 text-txt p-3 rounded-xl outline-none text-sm"
                               value={customReason}
                               onChange={(e) => setCustomReason(e.target.value)}
                            />
                            <input 
                               type="number" 
                               placeholder="ניקוד" 
-                              className="flex-1 bg-black/40 border border-[#d4af37]/30 text-white p-3 rounded-xl outline-none text-sm text-center"
+                              className="flex-1 bg-black/10 border border-accent/30 text-txt p-3 rounded-xl outline-none text-sm text-center"
                               value={customScore}
                               onChange={(e) => setCustomScore(e.target.value)}
                            />
@@ -179,7 +211,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
                     {student.phoneMother && (
                       <>
                         <button onClick={() => window.open(`tel:${student.phoneMother}`)} className="p-2 bg-white/10 rounded-full text-white"><Phone size={14}/></button>
-                        <button onClick={() => handleWhatsApp(student.phoneMother!, student.nameMother || 'אמא')} className="p-2 bg-green-500/20 rounded-full text-green-400"><MessageCircle size={14}/></button>
+                        <button onClick={() => handleWhatsApp(student.phoneMother!, student.nameMother || 'אמא')} className="p-2 bg-green-500/20 rounded-full text-green-500"><MessageCircle size={14}/></button>
                       </>
                     )}
                   </div>
@@ -197,7 +229,7 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
                     {student.phoneFather && (
                       <>
                         <button onClick={() => window.open(`tel:${student.phoneFather}`)} className="p-2 bg-white/10 rounded-full text-white"><Phone size={14}/></button>
-                        <button onClick={() => handleWhatsApp(student.phoneFather!, student.nameFather || 'אבא')} className="p-2 bg-green-500/20 rounded-full text-green-400"><MessageCircle size={14}/></button>
+                        <button onClick={() => handleWhatsApp(student.phoneFather!, student.nameFather || 'אבא')} className="p-2 bg-green-500/20 rounded-full text-green-500"><MessageCircle size={14}/></button>
                       </>
                     )}
                   </div>
@@ -209,33 +241,35 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
           {/* Activity Logs */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-2 mr-1">
-              <Calendar size={12}/> פירוט פעולות וניקוד
+              <Calendar size={12}/> פירוט פעולות וניקוד {filterKeyword && "(מסונן)"}
             </h3>
             <div className="space-y-2">
-              {student.logs.length === 0 ? (
-                <div className="text-center py-10 text-white/10 text-xs">טרם נרשמו פעולות</div>
+              {displayedLogs.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 text-xs">
+                    {filterKeyword ? "לא נמצאו נתונים תואמים לסינון" : "טרם נרשמו פעולות"}
+                </div>
               ) : (
-                student.logs.slice().reverse().map((log, idx) => (
-                  <div key={idx} className="bg-black/20 p-4 rounded-2xl border border-white/5 flex justify-between items-start">
+                displayedLogs.slice().reverse().map((logItem, idx) => (
+                  <div key={idx} className="bg-black/10 p-4 rounded-2xl border border-border flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${log.s >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {log.c} פעמים
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${logItem.s >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                          {logItem.c} פעמים
                         </span>
-                        <p className={`font-bold text-sm ${log.s >= 0 ? 'text-green-100' : 'text-red-200'}`}>{log.k}</p>
+                        <p className={`font-bold text-sm ${logItem.s >= 0 ? 'text-green-500' : 'text-red-500'}`}>{logItem.k}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[10px] text-gray-500 mt-2">
-                        <span className="bg-white/5 px-2 py-0.5 rounded flex items-center gap-1"><GraduationCap size={10}/> {log.sub}</span>
-                        <span className="bg-white/5 px-2 py-0.5 rounded flex items-center gap-1"><Users size={10}/> {log.teach}</span>
-                        <span className="text-gray-600">{log.d}</span>
+                        <span className="bg-white/5 px-2 py-0.5 rounded flex items-center gap-1"><GraduationCap size={10}/> {logItem.sub}</span>
+                        <span className="bg-white/5 px-2 py-0.5 rounded flex items-center gap-1"><Users size={10}/> {logItem.teach}</span>
+                        <span className="text-gray-600">{logItem.d}</span>
                       </div>
                     </div>
                     <div className="text-left">
-                      <p className={`font-black text-lg ${log.s >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {log.s > 0 ? '+' : ''}{log.s}₪
+                      <p className={`font-black text-lg ${logItem.s >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {logItem.s > 0 ? '+' : ''}{logItem.s}₪
                       </p>
                       {isAuthenticated && (
-                        <button onClick={() => onDeleteLog(student.name, student.logs.length - 1 - idx)} className="text-red-500/20 hover:text-red-500 transition-colors mt-2">
+                        <button onClick={() => onDeleteLog(student.name, logItem.originalIndex)} className="text-red-500/30 hover:text-red-500 transition-colors mt-2">
                           <Trash2 size={12}/>
                         </button>
                       )}
@@ -247,12 +281,12 @@ export const StudentDetails: React.FC<StudentDetailsProps> = ({ student, config,
           </div>
         </div>
 
-        <div className="p-6 bg-[#1a0f0d] border-t border-[#d4af37]/20 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-[#d4af37]/60">
+        <div className="p-6 bg-primary border-t border-accent/20 flex justify-between items-center">
+          <div className="flex items-center gap-2 text-accent/60">
             <Heart size={16} className="animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-widest">סך הכל עושר כיתתי</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{filterKeyword ? "מאזן תפילה" : "סך הכל עושר כיתתי"}</span>
           </div>
-          <span className="text-3xl font-black text-[#d4af37]">{student.total}₪</span>
+          <span className="text-3xl font-black text-accent">{displayTotal}₪</span>
         </div>
       </div>
     </div>
